@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Регистрация</title>
+    <link rel="stylesheet" href="Register-pizzeria.css">
+</head>
+<body>
+    <form action="">
+        <button class="btn-back">
+            <a href="pizzeria.html">← На страницу входа</a>
+        </button>
+    </form>
+    
+    <div class="Register">Регистрация</div>
+    <div class="Your-photo">Ваше фото:</div>
+    <div class="upload-container">
+        <input type="file" class="Photo" accept="image/*">
+        <div class="upload-button"></div>
+    </div>
+    
+    <div style="position: absolute; top: 13%; left: 2%; color: white; font-size: 16px;">
+        <h1>Дата рождения:</h1>
+    </div>
+    <input type="text" placeholder="XX.XX.XXXX" class="birthday">
+    
+    <div style="position: absolute; top: 13%; left: 20%; color: white; font-size: 16px;">
+        <h1>Ваше Имя:</h1>
+    </div>
+    <input type="text" placeholder="Иван" class="Name" autocomplete="off">
+    
+    <div style="position: absolute; top: 23%; left: 2%; color: white; font-size: 16px;">
+        <h1>Электронная почта:</h1>
+    </div>
+    <input type="text" placeholder="Ivanov@gmail.com" class="Mail">
+    
+    <div style="position: absolute; top: 23%; left: 20%; color: white; font-size: 16px;">
+        <h1>Ваша Фамилия:</h1>
+    </div>
+    <input type="text" placeholder="Иванов" class="Second-name">
+    
+    <div style="position: absolute; top: 33%; left: 2%; color: white; font-size: 16px;">
+        <h1>Номер телефона:</h1>
+    </div>
+    <input type="text" placeholder="+Х ХХХ ХХХ ХХ ХХ" class="Number">
+    
+    <div style="position: absolute; top: 33%; left: 20%; color: white; font-size: 16px;">
+        <h1>Адрес:</h1>
+    </div>
+    <input type="text" placeholder="Москва" class="City">
+    
+    <div style="position: absolute; top: 73%; left: 9%; color: white; font-size: 16px;">
+        <h1>Пароль:</h1>
+    </div>
+    <input type="password" placeholder="12345" class="password">
+
+    <div style="position: absolute; top: 43%; left: 2%; color: white; font-size: 16px;">
+        <h1>Карта для оплаты:</h1>
+    </div>
+    <input type="text" class="Card-for-payment" placeholder="XXXX XXXX ХХХХ ХХХХ">
+    
+    <button id="Confirm">Подтвердить</button>
+
+    <script>
+        let uploadedImage = null;
+        let dbManager;
+        let Timeout;
+
+        class IndexedDBManager {
+            constructor(dbName = 'UserDB-pizzeria', version = 2) {
+                this.dbName = dbName;
+                this.version = version;
+                this.db = null;
+            }
+
+            async open() {
+                return new Promise((resolve, reject) => {
+                    const request = indexedDB.open(this.dbName, this.version);
+                    
+                    request.onupgradeneeded = (event) => {
+                        const db = event.target.result;
+                        
+                        if (!db.objectStoreNames.contains('cards')) {
+                            const objectStore = db.createObjectStore('cards', { 
+                                keyPath: 'id', 
+                                autoIncrement: true 
+                            });
+                            objectStore.createIndex('email', 'email', { unique: false });
+                            objectStore.createIndex('name', 'name');
+                            objectStore.createIndex('phoneNumber', 'phoneNumber');
+                            console.log('Хранилище "cards" создано');
+                        }
+                    };
+                    
+                    request.onsuccess = (event) => {
+                        this.db = event.target.result;
+                        console.log("База данных открыта, версия:", this.version);
+                        resolve(this);
+                    };
+                    
+                    request.onerror = (event) => {
+                        console.error('Ошибка открытия БД:', event.target.error);
+                        reject(event.target.error);
+                    };
+                });
+            }
+
+            async addUser(userData) {
+                if (!this.db) {
+                    throw new Error('База данных не открыта');
+                }
+
+                return new Promise((resolve, reject) => {
+                    const transaction = this.db.transaction(['cards'], 'readwrite');
+                    const objectStore = transaction.objectStore('cards');
+                    const request = objectStore.add(userData);
+                    
+                    request.onsuccess = (event) => {
+                        const userId = event.target.result;
+                        console.log(`Пользователь добавлен с ID: ${userId}`);
+                        resolve(userId);
+                    };
+                    
+                    request.onerror = (event) => {
+                        console.error('Ошибка добавления:', event.target.error);
+                        reject(event.target.error);
+                    };
+                });
+            }
+
+            async updateUser(userData) {
+                if (!this.db) {
+                    throw new Error('База данных не открыта');
+                }
+
+                return new Promise((resolve, reject) => {
+                    const transaction = this.db.transaction(['cards'], 'readwrite');
+                    const objectStore = transaction.objectStore('cards');
+                    const request = objectStore.put(userData);
+                    
+                    request.onsuccess = () => {
+                        console.log(`Пользователь с ID ${userData.id} обновлен`);
+                        resolve(userData.id);
+                    };
+                    
+                    request.onerror = (event) => {
+                        console.error('Ошибка обновления:', event.target.error);
+                        reject(event.target.error);
+                    };
+                });
+            }
+
+            async getAll() {
+                if (!this.db) {
+                    throw new Error('База данных не открыта');
+                }
+
+                return new Promise((resolve, reject) => {
+                    const transaction = this.db.transaction(['cards'], 'readonly');
+                    const objectStore = transaction.objectStore('cards');
+                    const request = objectStore.getAll();
+                    
+                    request.onsuccess = () => {
+                        console.log(`Получено ${request.result.length} пользователей`);
+                        resolve(request.result);
+                    };
+                    
+                    request.onerror = (event) => {
+                        reject(event.target.error);
+                    };
+                });
+            }
+
+            async getUserByEmail(email) {
+                const allUsers = await this.getAll();
+                return allUsers.find(user => user.email === email);
+            }
+        }
+
+        function getCurrentFormData() {
+            return {
+                birthday: document.querySelector('.birthday')?.value || '',
+                name: document.querySelector('.Name')?.value || '',
+                email: document.querySelector('.Mail')?.value || '',
+                secondName: document.querySelector('.Second-name')?.value || '',
+                phoneNumber: document.querySelector('.Number')?.value || '',
+                city: document.querySelector('.City')?.value || '',
+                password: document.querySelector('.password')?.value || '',
+                payment: document.querySelector('.Card-for-payment')?.value || '',
+                avatar: uploadedImage ? uploadedImage.name : null
+            };
+        }
+
+        const fileInput = document.querySelector('.Photo');
+        const uploadIcon = document.querySelector('.upload-button');
+        
+        if (fileInput) {
+            fileInput.addEventListener('change', function(event) {
+                const file = event.target.files[0];
+                if (file) {
+                    uploadedImage = file;
+                    const imageUrl = URL.createObjectURL(uploadedImage);
+                    if (uploadIcon) {
+                        uploadIcon.style.backgroundImage = `url(${imageUrl})`;
+                        uploadIcon.style.backgroundSize = 'cover';
+                        uploadIcon.style.backgroundPosition = 'center';
+                    }
+                }
+            });
+        }
+
+        function showSuggestions(suggestions, query) {
+            const oldList = document.querySelector('.autocomplete-list');
+            if (oldList) oldList.remove();
+            
+            if (!suggestions || suggestions.length === 0) return;
+            
+            const nameInput = document.querySelector('.Name');
+            const listDiv = document.createElement('div');
+            listDiv.className = 'autocomplete-list';
+            
+            const rect = nameInput.getBoundingClientRect();
+            listDiv.style.position = 'absolute';
+            listDiv.style.top = (rect.bottom + window.scrollY) + 'px';
+            listDiv.style.left = (rect.left + window.scrollX) + 'px';
+            listDiv.style.width = rect.width + 'px';
+            listDiv.style.maxHeight = '200px';
+            listDiv.style.overflowY = 'auto';
+            listDiv.style.backgroundColor = '#2a2a2a';
+            listDiv.style.border = '1px solid #444';
+            listDiv.style.borderRadius = '5px';
+            listDiv.style.zIndex = '1000';
+            
+            document.body.appendChild(listDiv);
+            
+            suggestions.forEach(user => {
+                const itemDiv = document.createElement('div');
+                itemDiv.style.padding = '10px';
+                itemDiv.style.cursor = 'pointer';
+                itemDiv.style.color = 'white';
+                itemDiv.style.borderBottom = '1px solid #444';
+                
+                itemDiv.innerHTML = `
+                    <div style="font-weight: bold; color: #4CAF50;">${user.name}</div>
+                    <div style="font-size: 11px; color: #888;">${user.email || 'email не указан'}</div>
+                `;
+                
+                itemDiv.addEventListener('click', () => {
+                    fillFormWithUserData(user);
+                });
+                
+                itemDiv.addEventListener('mouseenter', () => {
+                    itemDiv.style.backgroundColor = '#3a3a3a';
+                });
+                
+                itemDiv.addEventListener('mouseleave', () => {
+                    itemDiv.style.backgroundColor = '#2a2a2a';
+                });
+                
+                listDiv.appendChild(itemDiv);
+            });
+        }
+
+        function fillFormWithUserData(user) {
+            if (!user) return;
+            
+            console.log('Заполняем форму данными пользователя:', user.name);
+            
+            if (document.querySelector('.Name')) 
+                document.querySelector('.Name').value = user.name || '';
+            
+            if (document.querySelector('.Second-name')) 
+                document.querySelector('.Second-name').value = user.secondName || '';
+            
+            if (document.querySelector('.Mail')) 
+                document.querySelector('.Mail').value = user.email || '';
+            
+            if (document.querySelector('.birthday')) 
+                document.querySelector('.birthday').value = user.birthday || '';
+            
+            if (document.querySelector('.Number')) 
+                document.querySelector('.Number').value = user.phoneNumber || '';
+            
+            if (document.querySelector('.City')) 
+                document.querySelector('.City').value = user.city || '';
+                
+            if (document.querySelector('.password'))
+                document.querySelector('.password').value = user.password || '';
+
+            if (document.querySelector('.Card-for-payment'))
+                document.querySelector('.Card-for-payment').value = user.payment || '';
+            const suggestionsList = document.querySelector('.autocomplete-list');
+            if (suggestionsList) suggestionsList.remove();
+        }
+
+        async function saveUserData() {
+            const formData = getCurrentFormData();
+            
+            if (!formData.name || !formData.email || !formData.secondName || 
+                !formData.phoneNumber || !formData.city || !formData.birthday || !formData.payment) {
+                alert("Пожалуйста, заполните все обязательные поля!");
+                return false;
+            }
+            try {
+                const existingUser = await dbManager.getUserByEmail(formData.email);
+                let userId = null;
+                
+                if (existingUser && existingUser.id) {
+                    formData.id = existingUser.id;
+                    userId = await dbManager.updateUser(formData);
+                    console.log('Пользователь обновлен, ID:', userId);
+                } else {
+                    userId = await dbManager.addUser(formData);
+                    formData.id = userId;
+                    console.log('Новый пользователь создан, ID:', userId);
+                }
+                sessionStorage.setItem('userID', userId);
+                sessionStorage.setItem('user', JSON.stringify(formData));
+                
+                localStorage.setItem('userData', JSON.stringify(formData));
+                
+                if (uploadedImage) {
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        const avatarData = e.target.result;
+                        localStorage.setItem(`avatar_${formData.email}`, avatarData);
+                        localStorage.setItem("avatar", avatarData);
+                        console.log('Фото сохранено');
+                        window.location.href = 'Account-pizzeria.html';
+                    };
+                    reader.readAsDataURL(uploadedImage);
+                } else {
+                    console.log('Данные сохранены без фото');
+                    window.location.href = 'Account-pizzeria.html';
+                }
+                
+                return true;
+                
+            } catch (error) {
+                console.error('Ошибка при сохранении:', error);
+                alert('Ошибка при сохранении данных: ' + error.message);
+                return false;
+            }
+        }
+        const nameInput = document.querySelector('.Name');
+        if (nameInput) {
+            nameInput.addEventListener('input', function(e) {
+                const query = e.target.value.trim();
+                clearTimeout(Timeout);
+                
+                const oldList = document.querySelector('.autocomplete-list');
+                if (oldList) oldList.remove();
+                
+                if (query.length === 0) return;
+                
+                Timeout = setTimeout(async () => {
+                    try {
+                        const allUsers = await dbManager.getAll();
+                        const filtered = allUsers.filter(user => 
+                            user.name && user.name.toLowerCase().includes(query.toLowerCase())
+                        );
+                        
+                        if (filtered.length > 0) {
+                            showSuggestions(filtered.slice(0, 10), query);
+                        }
+                    } catch (error) {
+                        console.error('Ошибка поиска:', error);
+                    }
+                }, 500);
+            });
+        }
+        const confirmButton = document.getElementById('Confirm');
+        if (confirmButton) {
+            confirmButton.onclick = async function(e) {
+                e.preventDefault();
+                await saveUserData();
+            };
+        }
+        document.addEventListener('DOMContentLoaded', async () => {
+            dbManager = new IndexedDBManager('UserDB', 2);
+            try {
+                await dbManager.open();
+                console.log('IndexedDB готова к работе');
+            } catch (error) {
+                console.error('Ошибка открытия БД:', error);
+                if (error.name === 'VersionError') {
+                    const deleteRequest = indexedDB.deleteDatabase('UserDB');
+                    deleteRequest.onsuccess = () => {
+                        console.log('Старая БД удалена, обновите страницу');
+                        alert('База данных обновлена. Пожалуйста, обновите страницу (F5)');
+                    };
+                }
+            }
+        });
+        const inputs = document.querySelectorAll('input');
+        inputs.forEach(input => {
+            input.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    saveUserData();
+                }
+            });
+        });
+    </script>
+</body>
+</html>

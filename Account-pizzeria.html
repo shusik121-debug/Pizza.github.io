@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Личный кабинет</title>
+    <link rel="stylesheet" href="Account-pizzeria.css">
+</head>
+<body>
+<form action="">
+    <button class="btn-back">
+        <a href="pizzeria.html" id="goToMainBtn">← На главную</a>
+    </button>
+</form>
+<img src="" alt="" class="avatar">
+<div class="info-row">
+    <div class="Name">Имя:</div>
+    <div class="name"></div>
+</div>
+<div class="info-row">
+    <div class="Second-name">Фамилия:</div>
+    <div class="second-name"></div>
+</div>
+<div class="info-row">
+    <div class="Number">Номер телефона:</div>
+    <div class="number"></div>
+</div>
+<div class="info-row">
+    <div class="Mail">Электронная почта:</div>
+    <div class="mail"></div>
+</div>
+<div class="info-row">
+    <div class="Birthday">Дата рождения:</div>
+    <div class="birthday"></div>
+    <div class="god" style="position: absolute; color: white; font-size: 25px;">Г.</div>
+</div>
+<div class="info-row">
+    <div class="City">Город проживания:</div>
+    <div class="city"></div>
+</div>
+<div class="info-row">
+    <div class="Card-for-payment">Карта для оплаты:</div>
+    <div class="сard"></div>
+</div>
+<a href="pizzeria.html"><button class="save">Сохранить изменения</button></a>
+
+<script>
+let dbManager;
+let currentUser = null;
+let allUsersList = [];
+
+async function saveChanges() {
+    if (!currentUser) {
+        alert('Нет данных для сохранения');
+        return;
+    }
+    const newAboutMe = document.querySelector('.About-me')?.textContent || '';
+    currentUser.aboutMe = newAboutMe;
+    
+    try {
+        if (dbManager && dbManager.db) {
+            await dbManager.updateUser(currentUser);
+            console.log('Изменения сохранены в IndexedDB');
+        }
+        localStorage.setItem("userData", JSON.stringify(currentUser));
+        alert('Изменения сохранены!');
+    } catch (error) {
+        console.error('Ошибка сохранения:', error);
+        alert('Ошибка при сохранении');
+    }
+}
+
+async function displayUserData(user, avatarUrl) {
+    const userId = sessionStorage.getItem('userID');
+    console.log('ID пользователя:', userId);
+
+    const goToMainBtn = document.getElementById('goToMainBtn');
+    if (goToMainBtn) {
+        goToMainBtn.onclick = function() { 
+            if (user) {
+                sessionStorage.setItem('user', JSON.stringify(user));
+            }
+            window.location.href = 'pizzeria.html';
+        };
+    }
+    
+    if (!userId) {
+        console.error('Пользователь не авторизован');
+        return;
+    }
+    
+    let userData = user;
+    if (!userData || !userData.name) {
+        try {
+            const allUsers = await dbManager.getAll();
+            userData = allUsers.find(u => u.id == userId);
+            
+            if (!userData) {
+                console.error('Пользователь не найден в БД');
+                return;
+            }
+        } catch (error) {
+            console.error('Ошибка загрузки пользователя:', error);
+            return;
+        }
+    }
+    
+    console.log('Данные пользователя:', userData);
+    
+    const avatarImg = document.querySelector('.avatar');
+    if (avatarImg) {
+        if (avatarUrl && avatarUrl !== 'null' && avatarUrl !== 'undefined') {
+            avatarImg.src = avatarUrl;
+        } else if (user) {
+            avatarImg.src = user.avatar;
+        } else {
+            avatarImg.src = 'https://via.placeholder.com/150?text=No+Avatar';
+        }
+    }
+    
+    const nameElement = document.querySelector('.name');
+    if (nameElement) nameElement.textContent = userData.name || 'Не указано';
+    
+    const secondNameElement = document.querySelector('.second-name');
+    if (secondNameElement) secondNameElement.textContent = userData.secondName || 'Не указано';
+    
+    const numberElement = document.querySelector('.number');
+    if (numberElement) numberElement.textContent = userData.phoneNumber || 'Не указано';
+    
+    const mailElement = document.querySelector('.mail');
+    if (mailElement) mailElement.textContent = userData.email || 'Не указано';
+    
+    const birthdayElement = document.querySelector('.birthday');
+    if (birthdayElement) {
+        birthdayElement.textContent = userData.birthday || 'Не указано';
+        setTimeout(updateGodPosition, 100);
+    }
+    
+    const cityElement = document.querySelector('.city');
+    if (cityElement) cityElement.textContent = userData.city || 'Не указано';
+    
+    const Cardforpayment = document.querySelector('.сard');
+    if (Cardforpayment) Cardforpayment.textContent = userData.payment || 'Не указано';
+}
+
+async function loadUserById(userId) {
+    try {
+        const user = await dbManager.getUserById(parseInt(userId));
+        if (user) {
+            currentUser = user;
+            const avatar = localStorage.getItem(`avatar_${user.email}`) || user.avatar;
+            displayUserData(user, avatar);
+        }
+    } catch (error) {
+        console.error('Ошибка загрузки пользователя:', error);
+    }
+}
+
+async function loadUserSelect() {
+    try {
+        allUsersList = await dbManager.getAll();
+        const select = document.getElementById('userSelect');
+        
+        if (select) {
+            select.innerHTML = ''; 
+            allUsersList.forEach(user => {
+                const option = document.createElement('option');
+                option.value = user.id;
+                option.textContent = `${user.name} ${user.secondName || ''} (${user.email})`;
+                select.appendChild(option);
+            });
+        }
+    } catch (error) {
+        console.error('Ошибка загрузки списка:', error);
+    }
+}
+
+async function loadLastUser() {
+    try {
+        const userId = sessionStorage.getItem('userID');
+        
+        if (!userId) {
+            console.error('ID пользователя не найден в sessionStorage');
+            displayUserData({}, null);
+            return;
+        }
+        const user = await dbManager.getUserById(parseInt(userId));
+        
+        if (user) {
+            console.log('Загружен пользователь:', user);
+            currentUser = user;
+            const avatar = localStorage.getItem(`avatar_${user.email}`) || user.avatar;
+            displayUserData(user, avatar);
+        } else {
+            console.error('Пользователь с ID', userId, 'не найден');
+            displayUserData({}, null);
+        }
+    } catch (error) {
+        console.error('Ошибка загрузки пользователя:', error);
+        displayUserData({}, null);
+    }
+}
+
+function updateGodPosition() {
+    const birthdayDiv = document.querySelector('.birthday');
+    const godDiv = document.querySelector('.god');
+    
+    if (birthdayDiv && godDiv && birthdayDiv.textContent && birthdayDiv.textContent !== 'Не указано') {
+        const rect = birthdayDiv.getBoundingClientRect();
+        godDiv.style.position = 'absolute';
+        godDiv.style.left = (rect.right + 10) + 'px';
+        godDiv.style.top = (rect.top + 3) + 'px';
+        godDiv.style.display = 'block';
+    } else if (godDiv) {
+        godDiv.style.display = 'none';
+    }
+}
+
+document.addEventListener('DOMContentLoaded', async () => {
+    console.log('Страница загружена, инициализация...');
+    
+    dbManager = new IndexedDBManager('UserDB', 2);
+    
+    try {
+        await dbManager.open();
+        console.log('IndexedDB готова к работе');
+        
+        await loadUserSelect(); 
+        await loadLastUser();  
+        
+    } catch (error) {
+        console.error('Ошибка при открытии БД:', error);
+        if (error.name === 'VersionError') {
+            const deleteRequest = indexedDB.deleteDatabase('UserDB');
+            deleteRequest.onsuccess = () => {
+                console.log('Старая БД удалена, перезагрузите страницу');
+                alert('База данных была обновлена. Пожалуйста, обновите страницу (F5)');
+            };
+        }
+    }
+    
+    const saveBtn = document.querySelector('.save');
+    if (saveBtn) {
+        saveBtn.addEventListener('click', async (e) => {
+            e.preventDefault();
+            await saveChanges();
+        });
+    }
+    
+    window.addEventListener('resize', updateGodPosition);
+});
+
+class IndexedDBManager {
+    constructor(dbName = 'UserDB-pizzeria', version = 2) { 
+        this.dbName = dbName;
+        this.version = version;
+        this.db = null;
+    }
+
+    async open() {
+        return new Promise((resolve, reject) => {
+            const request = indexedDB.open(this.dbName, this.version);
+            
+            request.onupgradeneeded = (event) => {
+                const db = event.target.result;
+                
+                if (!db.objectStoreNames.contains('cards')) {
+                    const objectStore = db.createObjectStore('cards', { 
+                        keyPath: 'id', 
+                        autoIncrement: true 
+                    });
+                    objectStore.createIndex('email', 'email', { unique: false });
+                    objectStore.createIndex('name', 'name');
+                    objectStore.createIndex('phoneNumber', 'phoneNumber');
+                    console.log('Хранилище "cards" создано');
+                }
+            };
+            
+            request.onsuccess = (event) => {
+                this.db = event.target.result;
+                console.log("База данных открыта, версия:", this.version);
+                resolve(this);
+            };
+            
+            request.onerror = (event) => {
+                console.error('Ошибка открытия БД:', event.target.error);
+                reject(event.target.error);
+            };
+        });
+    }
+
+    async getAll() {
+        if (!this.db) {
+            throw new Error('База данных не открыта');
+        }
+
+        return new Promise((resolve, reject) => {
+            const transaction = this.db.transaction(['cards'], 'readonly');
+            const objectStore = transaction.objectStore('cards');
+            const request = objectStore.getAll();
+            
+            request.onsuccess = () => {
+                console.log(`Получено ${request.result.length} карточек`);
+                resolve(request.result);
+            };
+            
+            request.onerror = (event) => {
+                reject(event.target.error);
+            };
+        });
+    }
+
+    async getUserById(id) {
+        if (!this.db) {
+            throw new Error('База данных не открыта');
+        }
+
+        return new Promise((resolve, reject) => {
+            const transaction = this.db.transaction(['cards'], 'readonly');
+            const objectStore = transaction.objectStore('cards');
+            const request = objectStore.get(id);
+            
+            request.onsuccess = () => {
+                resolve(request.result);
+            };
+            
+            request.onerror = (event) => {
+                reject(event.target.error);
+            };
+        });
+    }
+
+    async updateUser(user) {
+        if (!this.db) {
+            throw new Error('База данных не открыта');
+        }
+
+        return new Promise((resolve, reject) => {
+            const transaction = this.db.transaction(['cards'], 'readwrite');
+            const objectStore = transaction.objectStore('cards');
+            const request = objectStore.put(user);
+            
+            request.onsuccess = () => {
+                console.log('Пользователь обновлен');
+                resolve(request.result);
+            };
+            
+            request.onerror = (event) => {
+                reject(event.target.error);
+            };
+        });
+    }
+}
+</script>
+</body>
+</html>

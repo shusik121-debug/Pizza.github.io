@@ -1,0 +1,212 @@
+* {
+    margin: 0;
+    padding: 0;
+}
+body{
+    background-color: black;
+    width: auto;
+    height: 925px;
+}
+a{
+    text-decoration: none;
+    color: white;
+}
+.btn-back{
+    background-color: inherit;
+    padding-top: 20px;
+    padding-left: 10px;
+    width: 220px;
+    height: 35px;
+    font-size: 20px;
+    border-radius: 12px;
+    border: 0cap;
+}
+.Register{
+    position: absolute;
+    top: 1%;
+    left: 15%;
+    color: white;
+    font-size: 40px;
+}
+.Your-photo{
+    position: absolute;
+    top: 7%;
+    left: 1%;
+    font-size: 35px;
+    color: white;
+}
+.upload-container {
+    position: relative;
+    width: 50px;
+    height: 50px;
+    top: 2%;
+    left: 11%;
+}
+.Photo {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 50px; 
+    height: 50px;
+    opacity: 0;
+    cursor: pointer;
+    z-index: 2;
+}
+.upload-button {
+    width: 50px;
+    height: 50px;
+    background-image: url(pizzeria-foto/upload.png);
+    background-size: cover;
+    background-position: center;
+}
+.birthday{
+    position: absolute;
+    top: 17%;
+    left: 2%;
+    width: 250px;
+    height: 35px;
+    background-color: inherit;
+    border: 1px solid white;
+    color: white;
+    font-weight: bold;
+    font-size: 15px;
+}
+.birthday:not(:focus):placeholder-shown{
+    text-align: center;
+}
+.Name{
+    position: absolute;
+    top: 17%;
+    left: 20%;
+    width: 250px;
+    height: 35px;
+    background-color: inherit;
+    border: 1px solid white;
+    color: white;
+    font-weight: bold;
+    font-size: 15px;
+}
+.Name:not(:focus):placeholder-shown{
+    text-align: center;
+}
+.Mail{
+    position: absolute;
+    top: 27%;
+    left: 2%;
+    width: 250px;
+    height: 35px;
+    background-color: inherit;
+    border: 1px solid white;
+    color: white;
+    font-weight: bold;
+    font-size: 15px;
+}
+.Mail:not(:focus):placeholder-shown{
+    text-align: center;
+}
+.Second-name{
+    position: absolute;
+    top: 27%;
+    left: 20%;
+    width: 250px;
+    height: 35px;
+    background-color: inherit;
+    border: 1px solid white;
+    color: white;
+    font-weight: bold;
+    font-size: 15px;
+}
+.Second-name:not(:focus):placeholder-shown{
+    text-align: center;
+}
+.Number{
+    position: absolute;
+    top: 37%;
+    left: 2%;
+    width: 250px;
+    height: 35px;
+    background-color: inherit;
+    border: 1px solid white;
+    color: white;
+    font-weight: bold;
+    font-size: 15px;
+}
+.Number:not(:focus):placeholder-shown{
+    text-align: center;
+}
+.City{
+    position: absolute;
+    top: 37%;
+    left: 20%;
+    width: 250px;
+    height: 35px;
+    background-color: inherit;
+    border: 1px solid white;
+    color: white;
+    font-weight: bold;
+    font-size: 15px;
+}
+.City:not(:focus):placeholder-shown{
+    text-align: center;
+}
+.password{
+    position: absolute;
+    top: 78%;
+    left: 9%;
+    width: 250px;
+    height: 35px;
+    background-color: inherit;
+    border: 1px solid white;
+    color: white;
+    font-weight: bold;
+    font-size: 15px;
+}
+.password:not(:focus):placeholder-shown{
+    text-align: center;
+}
+.Card-for-payment{
+    position: absolute;
+    top: 47%;
+    left: 2%;
+    width: 250px;
+    height: 35px;
+    background-color: inherit;
+    border: 1px solid white;
+    color: white;
+    font-weight: bold;
+    font-size: 15px;
+}
+.Card-for-payment:not(:focus):placeholder-shown{
+    text-align: center;
+}
+#Confirm{
+    position: absolute;
+    top: 93%;
+    left: 9%;
+    width: 200px;
+    height: 50px;
+    border: 1px solid white;
+    background-color: inherit;
+    color: white;
+    font-size: 18px;
+    border-radius: 12px;
+    cursor: pointer;
+}
+.autocomplete-list {
+    position: absolute;
+    background: #2a2a2a;
+    border: 1px solid #444;
+    border-radius: 5px;
+    max-height: 200px;
+    overflow-y: auto;
+    z-index: 1000;
+}
+.autocomplete-list div {
+    padding: 10px;
+    cursor: pointer;
+    color: white;
+    border-bottom: 1px solid #444;
+}
+.autocomplete-list div:hover {
+    background: #3a3a3a;
+}

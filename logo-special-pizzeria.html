@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Document</title>
+    <link rel="stylesheet" href="logo-special-pizzeria.css">
+</head>
+<body>
+    <form action="">
+        <button class="btn-back">
+              <a href="pizzeria.html">
+                ← На главный сайт</a>
+        </button>
+    </form>
+    <div class="card">
+    <div class="login-front">
+        <div style="text-align: center; color: white; padding-top: 170px; font-size: 20px;"><h1>Вход</h1></div>
+        <input class="number" placeholder="Введите вашу почту/номер телефона">
+        <input class="password" placeholder="Введите пароль" type="password">
+        <div class="Register"><a href="Register-pizzeria.html">Зарегистрироваться</a></div>
+        <button class="Send-code">Войти</button>
+    </div>
+<script>
+const emailOrPhoneInput = document.querySelector('.number');
+const passwordInput = document.querySelector('.password');
+const loginButton = document.querySelector('.Send-code');
+let dbManager;
+
+document.addEventListener('DOMContentLoaded', async () => {
+    dbManager = new IndexedDBManager('UserDB', 2);
+    await dbManager.open();
+    console.log('IndexedDB готова к работе');
+});
+
+async function login() {
+    const loginValue = emailOrPhoneInput.value.trim();
+    const password = passwordInput.value.trim();
+    
+    if (!loginValue || !password) {
+        alert('Пожалуйста, заполните все поля');
+        return;
+    }
+    
+    try {
+        const allUsers = await dbManager.getAll();
+        const user = allUsers.find(user => 
+            (user.email && user.email.toLowerCase() === loginValue.toLowerCase()) ||
+            (user.phoneNumber && user.phoneNumber === loginValue)
+        );
+        if (!user) {
+            alert('Пользователь не найден');
+            return;
+        }
+        if (user.password === password) {
+            console.log('Вход выполнен:', user.name);
+            sessionStorage.setItem('userID', user.id);
+            sessionStorage.setItem('user', JSON.stringify(user));
+            window.location.href = 'Account-pizzeria.html';
+        } else {
+            alert('Неверный пароль');
+        }
+    } catch (error) {
+        console.error('Ошибка входа:', error);
+        alert('Ошибка при входе');
+    }
+}
+
+if (loginButton) {
+    loginButton.addEventListener('click', login);
+}
+
+if (passwordInput) {
+    passwordInput.addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            login();
+        }
+    });
+}
+class IndexedDBManager {
+        constructor(dbName = 'UserDB-pizzeria', version = 2) {  
+        this.dbName = dbName;
+        this.version = version;
+        this.db = null;
+    }
+
+    async open() {
+        return new Promise((resolve, reject) => {
+            const request = indexedDB.open(this.dbName, this.version);
+            
+            request.onupgradeneeded = (event) => {
+                const db = event.target.result;
+                
+                if (!db.objectStoreNames.contains('cards')) {
+                    const objectStore = db.createObjectStore('cards', { 
+                        keyPath: 'id', 
+                        autoIncrement: true 
+                    });
+                    objectStore.createIndex('email', 'email', { unique: false }); 
+                    objectStore.createIndex('name', 'name');
+                    objectStore.createIndex('phoneNumber', 'phoneNumber');
+                    console.log('Хранилище "cards" создано');
+                }
+            };
+            
+            request.onsuccess = (event) => {
+                this.db = event.target.result;
+                console.log("База данных открыта, версия:", this.version);
+                resolve(this);
+            };
+            
+            request.onerror = (event) => {
+                console.error('Ошибка открытия БД:', event.target.error);
+                reject(event.target.error);
+            };
+        });
+    }
+
+    async addMultiple(cardsArray) {
+        if (!this.db) {
+            throw new Error('База данных не открыта');
+        }
+
+        return new Promise((resolve, reject) => {
+            const transaction = this.db.transaction(['cards'], 'readwrite');
+            const objectStore = transaction.objectStore('cards');
+            
+            let addedCount = 0;
+            let errorCount = 0;
+            
+            cardsArray.forEach((card, index) => {
+                const request = objectStore.add(card);
+                
+                request.onsuccess = () => {
+                    addedCount++;
+                    console.log(`Добавлена карточка ${index + 1}:`, card.name);
+                };
+                
+                request.onerror = (event) => {
+                    errorCount++;
+                    console.error(`Ошибка добавления карточки ${index + 1}:`, event.target.error);
+                };
+            });
+            
+            transaction.oncomplete = () => {
+                console.log(`Добавлено: ${addedCount}, Ошибок: ${errorCount}`);
+                resolve({ addedCount, errorCount });
+            };
+            
+            transaction.onerror = (event) => {
+                console.error('Ошибка транзакции:', event.target.error);
+                reject(event.target.error);
+            };
+        });
+    }
+
+    async getAll() {
+        if (!this.db) {
+            throw new Error('База данных не открыта');
+        }
+
+        return new Promise((resolve, reject) => {
+            const transaction = this.db.transaction(['cards'], 'readonly');
+            const objectStore = transaction.objectStore('cards');
+            const request = objectStore.getAll();
+            
+            request.onsuccess = () => {
+                console.log(`Получено ${request.result.length} карточек`);
+                resolve(request.result);
+            };
+            
+            request.onerror = (event) => {
+                reject(event.target.error);
+            };
+        });
+    }
+
+    async deleteById(id) {
+    if (!this.db) {
+        throw new Error('База данных не открыта');
+    }
+
+    return new Promise((resolve, reject) => {
+        const transaction = this.db.transaction(['cards'], 'readwrite');
+        const objectStore = transaction.objectStore('cards');
+        const request = objectStore.delete(id);
+        
+        request.onsuccess = () => {
+            console.log(`Пользователь с id ${id} удален`);
+            resolve();
+        };
+        
+        request.onerror = (event) => {
+            reject(event.target.error);
+        };
+    });
+}
+}
+</script>
+</body>
+</html>
